@@ -2,6 +2,7 @@ import {Player} from '../src/player';
 import {ElementAnimatePolyfill} from '../src/index';
 import {MockBrowserClock} from '../src/mock/mock_browser_clock.ts';
 import {BrowserStyles} from '../src/browser_styles.ts';
+import {dimensionalProperties} from '../src/dimensional_properties.ts';
 
 describe('Player', () => {
   var polyfill = new ElementAnimatePolyfill();
@@ -20,90 +21,222 @@ describe('Player', () => {
     return element;
   };
 
-  it('should animate a given CSS property', () => {
-    var element = el('div');
-    var keyframes = [
-      { opacity: 0 },
-      { opacity: 1 }
-    ];
-    var options = {
-      duration: 1000
-    };
+  function testProp(prop, unit) {
+    it('should animate ' + prop, () => {
+      var element = el('div');
+      var keyframes = [{}, {}];
+      keyframes[0][prop] = '0' + unit;
+      keyframes[1][prop] = '100' + unit;
 
-    var player: Player = animate(element, keyframes, options);
+      var options = {
+        duration: 1000
+      };
 
-    player.play();
+      var player: Player = animate(element, keyframes, options);
 
-    clock.fastForward(500);
-    player.tick();
+      player.play();
 
-    expect(element.style.opacity).toBe('0.5');
+      clock.fastForward(500);
+      player.tick();
 
-    clock.fastForward(1000);
-    player.tick();
+      expect(element.style[prop]).toBe('50' + unit);
 
-    expect(element.style.opacity).toBe('1');
+      clock.fastForward(1000);
+      player.tick();
+
+      expect(element.style[prop]).toBe('100' + unit);
+    });
+  }
+
+  describe('dimensional style properties', () => {
+
+    dimensionalProperties.forEach((value) => {
+      testProp(value, 'px');
+    });
+
   });
 
-  it('should cleanup styles after the animation is complete if no fillMode is provided', () => {
-    var element = el('div');
-    var keyframes = [
-      { width: 100 },
-      { width: '200px' }
-    ];
-    var options = {
-      duration: 500
-    };
+  describe('numeric style properties', () => {
 
-    var player: Player = animate(element, keyframes, options);
+    it('should animate opacity', () => {
+      var element = el('div');
+      var keyframes = [
+        {opacity: 0 },
+        {opacity: 1}
+      ];
 
-    player.play();
+      var options = {
+        duration: 1000
+      };
 
-    clock.fastForward(0);
-    player.tick();
+      var player: Player = animate(element, keyframes, options);
 
-    expect(element.style.width).toBe('100px');
+      player.play();
 
-    clock.fastForward(250);
-    player.tick();
+      clock.fastForward(500);
+      player.tick();
 
-    expect(element.style.width).toBe('150px');
+      expect(element.style.opacity).toBe('0.5');
 
-    clock.fastForward(250);
-    player.tick();
+      clock.fastForward(1000);
+      player.tick();
 
-    expect(element.style.width).toBe('200px');
-    player.tick();
+      expect(element.style.opacity).toBe('1');
+    });
 
-    expect(element.style.width).toBe('');
+
+    it('should animate z-index', () => {
+      var element = el('div');
+      var keyframes = [{
+        'z-index': 0
+      }, {
+        'z-index': 100
+      }];
+
+      var options = {
+        duration: 1000
+      };
+
+      var player: Player = animate(element, keyframes, options);
+
+      player.play();
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(element.style['z-index']).toBe('50');
+
+      clock.fastForward(1000);
+      player.tick();
+
+      expect(element.style['z-index']).toBe('100');
+    });
   });
 
-  it('should retain styles after the animation is complete if a fillMode of "forwards" is provided', () => {
-    var element = el('div');
-    var keyframes = [
-      { width: '333px' },
-      { width: '999px' }
-    ];
-    var options = {
-      duration: 500,
-      fillMode: 'forwards'
-    };
+  describe('duration', function() {
 
-    var player: Player = animate(element, keyframes, options);
+    it('should allow setting a duration value as the option argument', () => {
+      var element = el('div');
+      var keyframes = [
+        { opacity: 0 },
+        { opacity: 1 }
+      ];
 
-    player.play();
+      var player: Player = animate(element, keyframes, 1000);
 
-    clock.fastForward(0);
-    player.tick();
+      player.play();
 
-    expect(element.style.width).toBe('333px');
+      clock.fastForward(500);
+      player.tick();
 
-    clock.fastForward(600);
-    player.tick();
+      expect(element.style.opacity).toBe('0.5');
 
-    expect(element.style.width).toBe('999px');
-    player.tick();
+      clock.fastForward(1000);
+      player.tick();
 
-    expect(element.style.width).toBe('999px');
+      expect(element.style.opacity).toBe('1');
+    });
+
   });
+
+  describe('fill mode', () => {
+    it('should use "none" by default and cleanup styles after the animation is complete', () => {
+      var element = el('div');
+      var keyframes = [
+        { width: 100 },
+        { width: '200px' }
+      ];
+      var options = {
+        duration: 500
+      };
+
+      var player: Player = animate(element, keyframes, options);
+
+      player.play();
+
+      clock.fastForward(0);
+      player.tick();
+
+      expect(element.style.width).toBe('100px');
+
+      clock.fastForward(250);
+      player.tick();
+
+      expect(element.style.width).toBe('150px');
+
+      clock.fastForward(250);
+      player.tick();
+
+      expect(element.style.width).toBe('200px');
+      player.tick();
+
+      expect(element.style.width).toBe('');
+    });
+
+    it('should cleanup styles after the animation is complete if fillMode "none" is passed', () => {
+      var element = el('div');
+      var keyframes = [
+        { width: 100 },
+        { width: '200px' }
+      ];
+      var options = {
+        duration: 500,
+        fillMode: 'none'
+      };
+
+      var player: Player = animate(element, keyframes, options);
+
+      player.play();
+
+      clock.fastForward(0);
+      player.tick();
+
+      expect(element.style.width).toBe('100px');
+
+      clock.fastForward(250);
+      player.tick();
+
+      expect(element.style.width).toBe('150px');
+
+      clock.fastForward(250);
+      player.tick();
+
+      expect(element.style.width).toBe('200px');
+      player.tick();
+
+      expect(element.style.width).toBe('');
+    });
+
+    it('should retain styles after the animation is complete if a fillMode of "forwards" is provided', () => {
+      var element = el('div');
+      var keyframes = [
+        { width: '333px' },
+        { width: '999px' }
+      ];
+      var options = {
+        duration: 500,
+        fillMode: 'forwards'
+      };
+
+      var player: Player = animate(element, keyframes, options);
+
+      player.play();
+
+      clock.fastForward(0);
+      player.tick();
+
+      expect(element.style.width).toBe('333px');
+
+      clock.fastForward(600);
+      player.tick();
+
+      expect(element.style.width).toBe('999px');
+      player.tick();
+
+      expect(element.style.width).toBe('999px');
+    });
+
+  });
+
+
 });
