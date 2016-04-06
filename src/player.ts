@@ -1,5 +1,6 @@
 import {BrowserClock} from './browser_clock.ts';
 import {BrowserStyles} from './browser_styles';
+import {dimensionalProperties} from './dimensional_properties';
 import {roundDecimal, toInt, toFloat, isNumber, isPresent} from './util';
 
 var $0 = 48;
@@ -26,40 +27,11 @@ function isNumericProperty(property: string): boolean {
 }
 
 function isDimensionalProperty(property: string): boolean {
-  switch (property) {
-    case 'width':
-    case 'height':
-    case 'min-width':
-    case 'min-height':
-    case 'max-width':
-    case 'max-height':
-    case 'left':
-    case 'top':
-    case 'bottom':
-    case 'right':
-    case 'font-size':
-    case 'outline-width':
-    case 'outline-offset':
-    case 'padding-top':
-    case 'padding-left':
-    case 'padding-bottom':
-    case 'padding-right':
-    case 'margin-top':
-    case 'margin-left':
-    case 'margin-bottom':
-    case 'margin-right':
-    case 'border-radius':
-    case 'border-width':
-    case 'border-top-width':
-    case 'border-left-width':
-    case 'border-right-width':
-    case 'border-bottom-width':
-    case 'text-indent':
-      return true;
-
-    default:
-      return false;
+  if (dimensionalProperties.indexOf(property) !== -1) {
+    return true;
   }
+
+  return false;
 }
 
 function findDimensionalSuffix(value) {
