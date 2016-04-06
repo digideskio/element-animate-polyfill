@@ -10,7 +10,7 @@ export class MockBrowserClock extends BrowserClock {
     this.startingTime = 0;
   }
 
-  next(fn) {
+  raf(fn) {
     this._queue.push(fn);
   }
 
