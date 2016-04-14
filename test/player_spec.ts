@@ -3,7 +3,8 @@ import {ElementAnimatePolyfill} from '../src/index';
 import {MockBrowserClock} from '../src/mock/mock_browser_clock.ts';
 import {BrowserStyles} from '../src/browser_styles.ts';
 import {DIMENSIONAL_PROPERTIES} from '../src/dimensional_properties';
-import {iit, xit, they} from './helpers';
+import {COLOR_PROPERTIES} from '../src/color_properties';
+import {iit, xit, they, fthey} from './helpers';
 
 describe('Player', () => {
   var polyfill = new ElementAnimatePolyfill();
@@ -105,6 +106,122 @@ describe('Player', () => {
 
       expect(element.style['z-index']).toBe('100');
     });
+  });
+
+  describe('color properties', function() {
+
+    they('should animate hex color values', COLOR_PROPERTIES, (prop) => {
+      var element = el('div');
+      var keyframes = [
+        { [prop]: '#FF0000' },
+        { [prop]: '#00FF00' }
+      ];
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgb(128, 128, 0)');
+
+      clock.fastForward(1000);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgb(0, 255, 0)');
+    });
+
+    they('should animate rgb color values', COLOR_PROPERTIES, (prop) => {
+      var element = el('div');
+      var keyframes = [
+        { [prop]: 'rgb(255, 0, 0)' },
+        { [prop]: 'rgb(0, 255, 0)' }
+      ];
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgb(128, 128, 0)');
+
+      clock.fastForward(1000);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgb(0, 255, 0)');
+    });
+
+    they('should animate rgba color values', COLOR_PROPERTIES, (prop) => {
+      var element = el('div');
+      var keyframes = [
+        { [prop]: 'rgba(255, 0, 0, 0)' },
+        { [prop]: 'rgba(0, 255, 0, 1)' }
+      ];
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgba(0, 255, 0, 0.501961)');
+
+      clock.fastForward(1000);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgb(0, 255, 0)');
+    });
+
+    they('should animate hsl color values', COLOR_PROPERTIES, (prop) => {
+      var element = el('div');
+      var keyframes = [
+        { [prop]: 'hsl(0, 100%, 50%)' },
+        { [prop]: 'hsl(120, 100%, 50%)' }
+      ];
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgb(128, 128, 0)');
+
+      clock.fastForward(1000);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgb(0, 255, 0)');
+    });
+
+    they('should animate hsla color values', COLOR_PROPERTIES, (prop) => {
+      var element = el('div');
+      var keyframes = [
+        { [prop]: 'hsla(0, 100%, 50%, 0)' },
+        { [prop]: 'hsla(120, 100%, 50%, 1)' }
+      ];
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgba(0, 255, 0, 0.501961)');
+
+      clock.fastForward(1000);
+      player.tick();
+
+      expect(element.style[prop]).toBe('rgb(0, 255, 0)');
+    });
+
+
+
   });
 
   describe('duration', function() {
