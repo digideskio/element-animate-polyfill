@@ -10,6 +10,7 @@ import {TransformStyleCalculator} from './calculators/transform_style_calculator
 import {ColorStyleCalculator} from './calculators/color_style_calculator';
 import {StyleCalculator} from './style_calculator';
 import {resolveEasingEquation} from './easing';
+import * as ANIMATION_ERRORS from './errors';
 
 export class AnimationPropertyEntry {
   constructor(public property: string, public calculator: StyleCalculator) {}
@@ -85,13 +86,24 @@ export class Player {
 
     var secondKeyframe = keyframes[1];
     forEach(secondKeyframe, (value, prop) => {
-      properties[prop].push(value);
+      if(properties[prop]) {
+        properties[prop].push(value);
+      } else {
+        throw new Error(ANIMATION_ERRORS.PARTIAL_KEYFRAMES);
+      }
     });
 
+    var previousFramePropsLength;
     this._animators = [];
     forEach(properties, (values, prop) => {
+      if (previousFramePropsLength && previousFramePropsLength !== prop.length) {
+        throw new Error(ANIMATION_ERRORS.PARTIAL_KEYFRAMES);
+      }
+
       var calculator = createCalculator(prop, values);
       this._animators.push(new AnimationPropertyEntry(prop, calculator));
+
+      previousFramePropsLength = prop.length;
     });
 
     this._easingEquation = resolveEasingEquation(_options.easing);

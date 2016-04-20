@@ -7,6 +7,7 @@ import {iit, xit, they, tthey, ddescribe} from './helpers';
 import {TRANSFORM_PROPERTIES, NO_UNIT, PX_UNIT, DEGREES_UNIT} from '../src/transform_properties';
 import {COLOR_PROPERTIES} from '../src/color_properties';
 import {isPresent} from '../src/util';
+import * as ANIMATION_ERRORS from '../src/errors';
 
 function assertColor(element, prop, value) {
   var COLOR_REGEX = /rgba?\(\s*([^\),]+)\s*,\s*([^\),]+)\s*,\s*([^\),]+)\s*(?:,\s*([^\)]+)\s*)?\)*/;
@@ -499,4 +500,48 @@ describe('Player', () => {
       });
     });
   });
+
+  describe('error messages', () => {
+
+    it('should throw when no argument is passed to animate()', () => {
+      var element = el('div');
+
+      expect(() => {
+        animate(element);
+      }).toThrowError(Error, ANIMATION_ERRORS.NO_KEYFRAMES);
+    });
+
+    they('should throw when keyframe properties do not match', [
+      [
+        { background: 'red' },
+        { color: 'blue' }
+      ],
+      [
+        { background: 'red', color: 'red' },
+        { background: 'blue' }
+      ]
+    ], (keyframes) => {
+      var element = el('div');
+
+      expect(() => {
+        animate(element, keyframes, 1000);
+      }).toThrowError(Error, ANIMATION_ERRORS.PARTIAL_KEYFRAMES);
+    });
+
+    they('should throw when duration is not a positive double', [
+      false, true, 'string', {}, [], NaN, -1
+    ], (value) => {
+      var element = el('div');
+
+      expect(() => {
+        animate(element, [
+          { background: 'red' },
+          { background: 'blue' }
+        ], value);
+      }).toThrowError(Error, ANIMATION_ERRORS.INVALID_DURATION);
+    });
+
+  });
+
+
 });
