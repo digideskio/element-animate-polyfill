@@ -23,7 +23,7 @@ var elementAnimateFn = window['$$elementAnimateFn'] = function(element, keyframe
 }
 
 if (!Element.prototype['animate']) {
-  Element.prototype['animate'] = (keyframes, options) => {
+  Element.prototype['animate'] = function (keyframes, options) {
     elementAnimateFn(this, keyframes, options);
   };
 }
