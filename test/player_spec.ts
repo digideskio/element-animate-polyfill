@@ -424,6 +424,7 @@ describe('Player', () => {
 
       expect(element.style.width).toBe('200px');
       player.tick();
+      clock.flushCallbacks();
 
       expect(element.style.width).toBe('');
     });
@@ -457,7 +458,7 @@ describe('Player', () => {
       player.tick();
 
       expect(element.style.width).toBe('200px');
-      player.tick();
+      clock.flushCallbacks();
 
       expect(element.style.width).toBe('');
     });
@@ -489,6 +490,70 @@ describe('Player', () => {
       player.tick();
 
       expect(element.style.width).toBe('999px');
+    });
+
+    they('should not render styles on screen upon start if a fill mode of $prop or forwards is used', ['none', 'forwards', ''], (fillMode) => {
+      var element = el('div');
+      var keyframes = [
+        { color: 'rgb(255,0,0)' },
+        { color: 'rgb(0,255,0)' }
+      ];
+      var options = {
+        delay: 500,
+        duration: 500,
+        fill: fillMode
+      };
+
+      var player: Player = animate(element, keyframes, options);
+
+      player.play();
+
+      clock.fastForward(0);
+      player.tick();
+
+      expect(s(element.style.color)).toBe('');
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(s(element.style.color)).toBe('rgb(255,0,0)');
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(s(element.style.color)).toBe('rgb(0,255,0)');
+    });
+
+    they('should render styles on screen upon start if a fill mode of $prop or forwards is used', ['both', 'backwards'], (fillMode) => {
+      var element = el('div');
+      var keyframes = [
+        { color: 'rgb(255,0,0)' },
+        { color: 'rgb(0,255,0)' }
+      ];
+      var options = {
+        delay: 500,
+        duration: 500,
+        fill: fillMode
+      };
+
+      var player: Player = animate(element, keyframes, options);
+
+      player.play();
+
+      clock.fastForward(0);
+      player.tick();
+
+      expect(s(element.style.color)).toBe('rgb(255,0,0)');
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(s(element.style.color)).toBe('rgb(255,0,0)');
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(s(element.style.color)).toBe('rgb(0,255,0)');
     });
 
     describe('transform properties', () => {

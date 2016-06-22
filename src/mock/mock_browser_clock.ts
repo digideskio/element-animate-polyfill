@@ -4,6 +4,7 @@ export class MockBrowserClock extends BrowserClock {
   _queue = [];
   public startingTime: number;
   public incrementedTime: number = 0;
+  public callbacks: Function[] = [];
 
   constructor() {
     super();
@@ -14,6 +15,15 @@ export class MockBrowserClock extends BrowserClock {
 
   fastForward(time: number) {
     this.incrementedTime += time;
+  }
+  
+  flushCallbacks() {
+    this.callbacks.forEach(cb => cb());
+    this.callbacks = [];
+  }
+  
+  callback(fn: Function) {
+    this.callbacks.push(fn);
   }
 
   now() {

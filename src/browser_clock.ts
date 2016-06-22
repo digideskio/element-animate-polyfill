@@ -12,4 +12,8 @@ export class BrowserClock {
   get currentTime() {
     return this.now();
   }
+
+  callback(fn) {
+    fn();
+  }
 }

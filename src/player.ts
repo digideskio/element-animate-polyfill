@@ -46,6 +46,7 @@ export class Player {
   private _animators: AnimationPropertyEntry[] = [];
   private _initialValues: {[key: string]: string};
   private _easingEquation: Function;
+  private _applyAnimationsDuringDelay = false;
 
   private _styleProgressLookup: {[prop: string]: StyleSpectrumEntry[]};
   private _totalOffsetCount: number;
@@ -62,6 +63,7 @@ export class Player {
     var output = createValueSpectrumFromKeyframes(_keyframes, _options.duration);
     this._styleProgressLookup = output.spectrumMap;
     this._totalOffsetCount = output.totalOffsets;
+    this._applyAnimationsDuringDelay = _options.fill == 'both' || _options.fill == 'backwards';
 
     forEach(output.valuesMap, (entries, prop) => {
       var calculator = resolveStyleCalculator(prop, entries);
@@ -72,7 +74,7 @@ export class Player {
 
     this._easingEquation = resolveEasingEquation(_options.easing);
   }
-  
+
   get totalTime() {
     return this._options.duration;
   }
@@ -94,15 +96,23 @@ export class Player {
   }
 
   _onfinish() {
-    var fill = this._options.fill;
-    if (fill == 'none' || fill == 'backwards') {
-      this._cleanup();
-    }
-    this.onfinish();
+    if (!this.playing) return;
+    this.playing = false;
+    this._clock.callback(() => {
+      var fill = this._options.fill;
+      if (fill == 'none' || fill == 'backwards') {
+        this._cleanup();
+      }
+      this.onfinish();
+    })
   }
 
   _oncancel() {
-    this._cleanup();
+    if (!this.playing) return;
+    this.playing = false;
+    this._clock.callback(() => {
+      this._cleanup();
+    });
   }
 
   _ease(percentage) {
@@ -112,6 +122,7 @@ export class Player {
   _computeProperties(currentTime: number): string[] {
     var keyframeLimit = this._totalOffsetCount - 1;
     var totalTime = this.totalTime;
+    
     var percentage = Math.min(currentTime / totalTime, 1);
 
     var results = [];
@@ -150,15 +161,26 @@ export class Player {
 
   tick() {
     var currentTime = this._clock.currentTime - this._startingTimestamp;
-    this._computeProperties(currentTime).forEach(entry => this._apply(entry[0], entry[1]));
-
-    if (this._currentTime >= this.totalTime) {
-      this._onfinish();
+    var delay = this._options.delay;
+    var doAnimation = true;
+    if (currentTime < delay) {
+      doAnimation = this._applyAnimationsDuringDelay;
+      currentTime = 0;
     } else {
-      this._clock.raf(() => this.tick());
+      currentTime -= delay;
+    }
+    
+    if (doAnimation) {
+      this._computeProperties(currentTime).forEach(entry => this._apply(entry[0], entry[1]));
     }
 
-    this._currentTime = currentTime;
+    if (currentTime >= this.totalTime) {
+      this._currentTime = this.totalTime;
+      this._onfinish();
+    } else {
+      this._currentTime = currentTime;
+      this._clock.raf(() => this.tick());
+    }
   }
 
   _cleanup() {
@@ -166,7 +188,7 @@ export class Player {
       var property = entry.property;
       this._apply(property, this._initialValues[property]);
     });
-    this._initialValues = null;
+    this._initialValues = {};
   }
 
   _apply(prop: string, value: string) {
