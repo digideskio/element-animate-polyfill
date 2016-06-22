@@ -2,7 +2,17 @@ export var NO_UNIT = '';
 export var DEGREES_UNIT = 'deg';
 export var PX_UNIT = 'px';
 
-export var TRANSFORM_PROPERTIES = {
+export var TRANSFORM_PROPERTIES = [
+  'transform',
+  '-webkit-transform',
+  'webkitTransform',
+  'WebkitTransform',
+  '-moz-transform',
+  'mozTransform',
+  'MozTransform'
+];
+
+export var TRANSFORM_VALUES_DICTIONARY = {
   'translate': {
     'defaults': [0,0],
     'units': [PX_UNIT, PX_UNIT]

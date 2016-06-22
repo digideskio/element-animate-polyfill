@@ -1,20 +1,47 @@
 import {StyleCalculator} from '../style_calculator';
-import {toInt} from '../util';
+import {toFloat} from '../util';
+import {StyleValueEntry} from '../parser';
+
+export class NumericalRangeEntry {
+  constructor(public from: number, public to: number, public diff: number) {}
+}
 
 export class NumericalStyleCalculator implements StyleCalculator {
-  private _startValue: number;
-  private _endValue: number;
-  private _rangeDiff: number;
+  private _range: NumericalRangeEntry[];
 
   constructor() {}
 
-  setKeyframeRange(startValue: number|string, endValue: number|string): void {
-    this._startValue = toInt(startValue);
-    this._endValue = toInt(endValue);
-    this._rangeDiff = this._endValue - this._startValue;
+  setKeyframeRange(values: StyleValueEntry[]): void {
+    var limit = values.length - 1;
+    var range = [];
+    for (var i = 0; i < limit; i++) {
+      var from = toFloat(values[i].value);
+      var to = toFloat(values[i + 1].value);
+      range.push(new NumericalRangeEntry(from, to, to - from));
+    }
+    this._range = range;
+  }
+  
+  get range() {
+    return this._range;
   }
 
-  calculate(percentage: number): string {
-    return (this._rangeDiff * percentage + this._startValue).toString();
+  getFinalValue(): string {
+    return this.range[this._range.length - 1].to.toString();
+  }
+
+  _calcNumber(index: number, percentage: number): number {
+    var entry = this.range[index];
+    return entry.diff * percentage + entry.from;
+  }
+
+  calculate(index: number, percentage: number): string {
+    return this._calcNumber(index, percentage).toString();
+  }
+}
+
+export class RoundedNumericalStyleCalculator extends NumericalStyleCalculator {
+  calculate(index: number, percentage: number): string {
+    return Math.round(this._calcNumber(index, percentage)).toString();
   }
 }

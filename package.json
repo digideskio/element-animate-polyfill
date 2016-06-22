@@ -23,7 +23,7 @@
     "demo:watch": "node watch.js",
     "test": "karma start",
     "autotest": "karma start --auto-watch --no-single-run",
-    "bundle": "npm run copy-files; npm run compile"
+    "build": "npm run copy-files; npm run compile"
   },
   "devDependencies": {
     "fs-extra": "^0.26.7",

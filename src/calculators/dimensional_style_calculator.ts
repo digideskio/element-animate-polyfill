@@ -1,30 +1,40 @@
 import {StyleCalculator} from '../style_calculator';
 import {toInt, findDimensionalSuffix} from '../util';
+import {NumericalStyleCalculator} from './numerical_style_calculator';
+import {StyleValueEntry} from '../parser';
 
-var DEFAULT_UNIT = 'px';
+const DEFAULT_UNIT = 'px';
 
-export class DimensionalStyleCalculator implements StyleCalculator {
-  private _unit: string;
-  private _startValue: number;
-  private _endValue: number;
-  private _rangeDiff: number;
+export class DimensionalStyleCalculator extends NumericalStyleCalculator implements StyleCalculator {
+  private _units: string[] = [];
 
-  constructor() {}
+  constructor() { super(); }
 
-  setKeyframeRange(startValue: number|string, endValue: number|string): void {
-    var unitA = findDimensionalSuffix(startValue) || DEFAULT_UNIT;
-    var unitB = findDimensionalSuffix(endValue) || DEFAULT_UNIT;
-    if (unitA != unitB) {
-      throw new Error(`Animations containing the same unit can only be animated (the unit for ${startValue} != ${endValue}`);
+  setKeyframeRange(values: StyleValueEntry[]): void {
+    super.setKeyframeRange(values);
+    var from: string = values[0].value.toString();
+    var sharedUnit = findDimensionalSuffix(from) || DEFAULT_UNIT;
+    this._units.push(sharedUnit);
+
+    for (var i = 1; i < values.length; i++) {
+      var to = values[i].value.toString();
+      var toUnit = findDimensionalSuffix(to) || DEFAULT_UNIT;
+      if (toUnit != sharedUnit) {
+        throw new Error(`Animations containing the same unit can only be animated (the unit for ${from} != ${to}`);
+      }
+      this._units.push(toUnit);
+      from = to;
     }
-
-    this._unit = unitA;
-    this._startValue = toInt(startValue);
-    this._endValue = toInt(endValue);
-    this._rangeDiff = this._endValue - this._startValue;
   }
 
-  calculate(percentage: number): string {
-    return this._rangeDiff * percentage + this._startValue + this._unit;
+  getFinalValue(): string {
+    var finalIndex = this.range.length - 1;
+    return this.calculate(finalIndex, 1)
+  }
+
+  calculate(index: number, percentage: number): string {
+    var value = super.calculate(index, percentage);
+    var unit = this._units[index];
+    return value + unit;
   }
 }

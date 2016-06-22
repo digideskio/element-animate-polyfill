@@ -41,6 +41,33 @@ export function forEach(collection: any[]|{[key: string]: any}, fn: Function) {
   }
 }
 
+export function mapEach(collection: any[]|{[key: string]: any}, fn: Function) {
+  if (isArray(collection)) {
+    return (<any[]>collection).map((v,i) => fn(v,i));
+  }
+  
+  var result: {[key: string]: any} = {};
+  forEach(collection, (value, prop) => {
+    result[prop] = fn(value, prop); 
+  });
+  return result; 
+}
+
+export function every(collection: any[]|{[key: string]: any}, fn: Function) {
+  if (isArray(collection)) {
+    return (<any[]>collection).every((value, index) => fn(value, index));
+  } else if (isStringMap(collection)) {
+    for (var key in collection) {
+      let value = collection[key];
+      var result = fn(value, key);
+      if (!result) return false;
+    }
+    return true;
+  } else {
+    throw new Error('invalid value passed into forEach');
+  }
+}
+
 export function toJson(value: any) {
   return JSON.stringify(value);
 }
@@ -49,7 +76,7 @@ const _$0 = 48;
 const _$9 = 57;
 const _$PERIOD = 46;
 
-export function findDimensionalSuffix(value): string {
+export function findDimensionalSuffix(value: string): string {
   for (var i = 0; i < value.length; i++) {
     var c = value.charCodeAt(i);
     if ((c >= _$0 && c <= _$9) || c == _$PERIOD) continue;
@@ -58,3 +85,25 @@ export function findDimensionalSuffix(value): string {
   return '';
 }
 
+export function shallowCopy(value: any): any {
+  if (isStringMap(value)) {
+    var newObj = {};
+    forEach(value, (v,k) => {
+      newObj[k] = v;
+    });
+    return newObj;
+  }
+
+  if (isArray(value)) {
+    return value.map(value => value);
+  }
+
+  return value;
+}
+
+export function arrayEquals(a: any[], b: any[]) {
+  var valuesMap = {};
+  a.forEach(v => valuesMap[v] = 1);
+  b.forEach(v => valuesMap[v] = (valuesMap[v] || 0) - 1);
+  return every(valuesMap, (value, key) => value == 0);
+}

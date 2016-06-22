@@ -4,10 +4,14 @@ import {MockBrowserClock} from '../src/mock/mock_browser_clock.ts';
 import {BrowserStyles} from '../src/browser_styles.ts';
 import {DIMENSIONAL_PROPERTIES} from '../src/dimensional_properties';
 import {iit, xit, they, tthey, ddescribe} from './helpers';
-import {TRANSFORM_PROPERTIES, NO_UNIT, PX_UNIT, DEGREES_UNIT} from '../src/transform_properties';
+import {TRANSFORM_VALUES_DICTIONARY, NO_UNIT, PX_UNIT, DEGREES_UNIT} from '../src/transform_properties';
 import {COLOR_PROPERTIES} from '../src/color_properties';
 import {isPresent} from '../src/util';
 import * as ANIMATION_ERRORS from '../src/errors';
+
+function s(s: string): string {
+  return s.replace(/\s+/g,'');
+}
 
 function assertColor(element, prop, value) {
   var COLOR_REGEX = /rgba?\(\s*([^\),]+)\s*,\s*([^\),]+)\s*,\s*([^\),]+)\s*(?:,\s*([^\)]+)\s*)?\)*/;
@@ -78,10 +82,46 @@ describe('Player', () => {
 
       expect(element.style[prop]).toBe('100' + unit);
     });
+
+    it('should be animated property when apart of an animation sequence', () => {
+      var element = el('div');
+      var keyframes = [
+        { width: '100px', height: '0', offset: 0 },
+        { width: '400px', offset: 0.4 },
+        { height: '400px', offset: 0.5 },
+        { width: '1000px', height: '1000px', offset: 1 }
+      ];
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      expect(element.style['width']).toBe('100px');
+      expect(element.style['height']).toBe('0px');
+
+      clock.fastForward(400);
+      player.tick();
+
+      expect(element.style['width']).toBe('400px');
+      expect(element.style['height']).toBe('320px');
+
+      clock.fastForward(100);
+      player.tick();
+
+      expect(element.style['width']).toBe('500px');
+      expect(element.style['height']).toBe('400px');
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(element.style['width']).toBe('1000px');
+      expect(element.style['height']).toBe('1000px');
+
+      player.tick();
+    });
   });
 
   describe('numeric style properties', () => {
-
     it('should animate opacity', () => {
       var element = el('div');
       var keyframes = [
@@ -108,7 +148,6 @@ describe('Player', () => {
       expect(element.style.opacity).toBe('1');
     });
 
-
     it('should animate z-index', () => {
       var element = el('div');
       var keyframes = [{
@@ -134,6 +173,50 @@ describe('Player', () => {
       player.tick();
 
       expect(element.style['z-index']).toBe('100');
+    });
+
+    it('should be animated property when apart of an animation sequence', () => {
+      var element = el('div');
+      var keyframes = [
+        { opacity: '0', 'z-index': 0, offset: 0 },
+        { opacity: '0.5', 'z-index': 1, offset: 0.2 },
+        { 'z-index': 3, offset: 0.8 },
+        { opacity: '0.9', offset: 0.9 },
+        { opacity: '1', 'z-index': 5, offset: 1 }
+      ];
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      expect(element.style['opacity']).toBe('0');
+      expect(element.style['z-index']).toBe('0');
+
+      clock.fastForward(200);
+      player.tick();
+
+      expect(element.style['opacity']).toBe('0.5');
+      expect(element.style['z-index']).toBe('1');
+
+      clock.fastForward(600);
+      player.tick();
+
+      expect(element.style['opacity']).toBe('0.842857');
+      expect(element.style['z-index']).toBe('3');
+
+      clock.fastForward(100);
+      player.tick();
+
+      expect(element.style['opacity']).toBe('0.9');
+      expect(element.style['z-index']).toBe('4');
+
+      clock.fastForward(200);
+      player.tick();
+
+      expect(element.style['opacity']).toBe('1');
+      expect(element.style['z-index']).toBe('5');
+
+      player.tick();
     });
   });
 
@@ -249,10 +332,44 @@ describe('Player', () => {
 
       assertColor(element, prop, 'rgba(0, 255, 0, 1)');
     });
+
+    it('should be animated property when apart of an animation sequence', () => {
+      var element = el('div');
+      var keyframes = [
+        { color: '#000', backgroundColor: 'rgb(255,0,0)', offset: 0 },
+        { color: '#500', offset: 0.4 },
+        { backgroundColor: 'rgb(0,255,0)', offset: 0.6 },
+        { color: '#fff', backgroundColor: 'rgb(0,0,0)', offset: 1 }
+      ];
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      expect(s(element.style['color'])).toBe('rgb(0,0,0)');
+      expect(s(element.style['backgroundColor'])).toBe('rgb(255,0,0)');
+
+      clock.fastForward(500);
+      player.tick();
+
+      expect(s(element.style['color'])).toBe('rgb(113,42,42)');
+      expect(s(element.style['backgroundColor'])).toBe('rgb(43,213,0)');
+
+      clock.fastForward(100);
+      player.tick();
+
+      expect(s(element.style['color'])).toBe('rgb(142,85,85)');
+      expect(s(element.style['backgroundColor'])).toBe('rgb(0,255,0)');
+
+      clock.fastForward(400);
+      player.tick();
+
+      expect(s(element.style['color'])).toBe('rgb(255,255,255)');
+      expect(s(element.style['backgroundColor'])).toBe('rgb(0,0,0)');
+    });
   });
 
   describe('duration', function() {
-
     it('should allow setting a duration value as the option argument', () => {
       var element = el('div');
       var keyframes = [
@@ -411,7 +528,7 @@ describe('Player', () => {
       defaultValuesTemplate['to'][DEGREES_UNIT] = '300deg';
 
       they('should animate the $prop property accordingly', propertiesToTest, (prop) => {
-        var defaultData = TRANSFORM_PROPERTIES[prop];
+        var defaultData = TRANSFORM_VALUES_DICTIONARY[prop];
         var fromValues = defaultData.units.map(unit => {
           return defaultValuesTemplate['from'][unit];
         });
@@ -502,12 +619,11 @@ describe('Player', () => {
   });
 
   describe('error messages', () => {
-
     it('should throw when no argument is passed to animate()', () => {
       var element = el('div');
 
       expect(() => {
-        animate(element);
+        animate(element, [], {});
       }).toThrowError(Error, ANIMATION_ERRORS.NO_KEYFRAMES);
     });
 

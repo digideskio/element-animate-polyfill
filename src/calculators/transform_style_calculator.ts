@@ -1,29 +1,48 @@
 import {StyleCalculator} from '../style_calculator';
 import {toInt, forEach, findDimensionalSuffix} from '../util';
-import {TRANSFORM_PROPERTIES, NO_UNIT, PX_UNIT, DEGREES_UNIT} from '../transform_properties';
+import {TRANSFORM_VALUES_DICTIONARY, NO_UNIT, PX_UNIT, DEGREES_UNIT} from '../transform_properties';
+import {StyleValueEntry} from '../parser';
 
 export class TransformStyleCalculator implements StyleCalculator {
-  private _keyframes: _TransformKeyframeValue[];
-  private _template: _StyleTemplate;
+  private _range: _TransformStyleCalculationRangeEntry[];
+  private _finalValue: string;
 
-  setKeyframeRange(startValue: number|string, endValue: number|string): void {
-    var fromTransform = new _TransformDetails(startValue.toString());
-    var toTransform = new _TransformDetails(endValue.toString());
-    this._keyframes = generateKeyframesBetweenTransforms(fromTransform, toTransform);
-    this._template = compileTemplateFromTransformProperties(toTransform.properties);
+  setKeyframeRange(values: StyleValueEntry[]): void {
+    var limit = values.length - 1;
+    var range = [];
+    for (var i = 0; i < limit; i++) {
+      let from = values[i];
+      let to = values[i + 1];
+
+      let fromTransform = new _TransformDetails(from.value.toString());
+      let toTransform = new _TransformDetails(to.value.toString());
+      let transformKeyframes = generateKeyframesBetweenTransforms(fromTransform, toTransform);
+      let template = compileTemplateFromTransformProperties(toTransform.properties);
+      range.push(new _TransformStyleCalculationRangeEntry(transformKeyframes, template));
+    }
+    this._range = range;
   }
 
-  calculate(percentage: number): string {
-    for (var i = 0; i < this._keyframes.length; i++) {
-      let entry = this._keyframes[i];
+  calculate(index: number, percentage: number): string {
+    var rangeEntry = this._range[index];
+    for (var i = 0; i < rangeEntry.keyframes.length; i++) {
+      let entry = rangeEntry.keyframes[i];
       let values = entry.calculateAtPercentage(percentage);
-      var startIndex = this._template.getStartIndexForProperty(entry.property);
+      var startIndex = rangeEntry.template.getStartIndexForProperty(entry.property);
       for (var j = 0; j < values.length; j++) {
-        this._template.set(startIndex + j + j, values[j]);
+        rangeEntry.template.set(startIndex + j + j, values[j]);
       }
     }
-    return this._template.eval();
+    return rangeEntry.template.eval();
   }
+
+  getFinalValue(): string {
+    return this.calculate(this._range.length - 1, 1);
+  }
+}
+
+class _TransformStyleCalculationRangeEntry {
+  constructor(public keyframes: _TransformKeyframeValue[], public template: _StyleTemplate) {}
 }
 
 class _StyleTemplate {
@@ -65,7 +84,7 @@ class _TransformKeyframeValue {
   public d4: number = 0;
 
   constructor(public property: string, from: string, to: string) {
-    var defaultEntry = TRANSFORM_PROPERTIES[property];
+    var defaultEntry = TRANSFORM_VALUES_DICTIONARY[property];
     var defaultValues = defaultEntry['defaults'];
     var defaultUnits = defaultEntry['units'];
     this.length = defaultValues.length;
@@ -163,7 +182,7 @@ function compileTemplateFromTransformProperties(properties: string[]): _StyleTem
   var tokens = [];
   var tokenLookup: {[key: string]: number} = {};
   properties.forEach(prop => {
-    var entry = TRANSFORM_PROPERTIES[prop]['defaults'];
+    var entry = TRANSFORM_VALUES_DICTIONARY[prop]['defaults'];
     tokens.push(prop);
     tokens.push("(");
     tokenLookup[prop] = tokens.length;
@@ -206,7 +225,7 @@ function generateKeyframesBetweenTransforms(a: _TransformDetails, b: _TransformD
 
   var keyframes = [];
   forEach(usedProperties, (status, prop) => {
-    let defaultValue = TRANSFORM_PROPERTIES[prop];
+    let defaultValue = TRANSFORM_VALUES_DICTIONARY[prop];
     if (status == 1) {
       to[prop] = concatValuesAndUnits(defaultValue.defaults, defaultValue.units);
     } else if (status == -1) {

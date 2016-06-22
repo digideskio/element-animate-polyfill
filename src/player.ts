@@ -1,15 +1,10 @@
 import {BrowserClock} from './browser_clock.ts';
 import {BrowserStyles} from './browser_styles';
-import {DIMENSIONAL_PROPERTIES} from './dimensional_properties';
-import {NUMERICAL_PROPERTIES} from './numerical_properties';
-import {COLOR_PROPERTIES} from './color_properties';
 import {forEach, roundDecimal, toInt, toFloat, isNumber, isPresent} from './util';
-import {DimensionalStyleCalculator} from './calculators/dimensional_style_calculator';
-import {NumericalStyleCalculator} from './calculators/numerical_style_calculator';
-import {TransformStyleCalculator} from './calculators/transform_style_calculator';
-import {ColorStyleCalculator} from './calculators/color_style_calculator';
 import {StyleCalculator} from './style_calculator';
 import {resolveEasingEquation} from './easing';
+import {Keyframes} from './keyframes';
+import {StyleSpectrumEntry, createValueSpectrumFromKeyframes, resolveStyleCalculator} from './parser';
 import * as ANIMATION_ERRORS from './errors';
 
 export class AnimationPropertyEntry {
@@ -45,70 +40,39 @@ export class PlayerOptions {
   }
 }
 
-function createCalculator(prop: string, values: any[]): StyleCalculator {
-  var calc: StyleCalculator;
-  if (DIMENSIONAL_PROPERTIES.indexOf(prop) >= 0) {
-    calc = new DimensionalStyleCalculator();
-  } else if (NUMERICAL_PROPERTIES.indexOf(prop) >= 0) {
-    calc = new NumericalStyleCalculator();
-  } else if (prop == 'transform') {
-    calc = new TransformStyleCalculator();
-  } else if (COLOR_PROPERTIES.indexOf(prop) >= 0) {
-    calc = new ColorStyleCalculator();
-  } else {
-    throw new Error('Only dimensional properties can be animated now');
-  }
-  calc.setKeyframeRange(<string|number>values[0], <string|number>values[1]);
-  return calc;
-}
-
 export class Player {
   private _currentTime: number = 0;
   private _startingTimestamp: number = 0;
-  private _animators: AnimationPropertyEntry[];
+  private _animators: AnimationPropertyEntry[] = [];
   private _initialValues: {[key: string]: string};
   private _easingEquation: Function;
+
+  private _styleProgressLookup: {[prop: string]: StyleSpectrumEntry[]};
+  private _totalOffsetCount: number;
 
   onfinish: Function = () => {};
   playing: boolean;
 
   constructor(private _element: HTMLElement,
-              keyframes: {[key: string]: string}[],
+              private _keyframes: Keyframes,
               private _options: PlayerOptions,
               private _clock: BrowserClock,
               private _styles: BrowserStyles) {
+    
+    var output = createValueSpectrumFromKeyframes(_keyframes, _options.duration);
+    this._styleProgressLookup = output.spectrumMap;
+    this._totalOffsetCount = output.totalOffsets;
 
-    var properties = {};
-    var firstKeyframe = keyframes[0];
-    forEach(firstKeyframe, (value, prop) => {
-      properties[prop] = [value];
-    });
-
-    var secondKeyframe = keyframes[1];
-    forEach(secondKeyframe, (value, prop) => {
-      if(properties[prop]) {
-        properties[prop].push(value);
-      } else {
-        throw new Error(ANIMATION_ERRORS.PARTIAL_KEYFRAMES);
+    forEach(output.valuesMap, (entries, prop) => {
+      var calculator = resolveStyleCalculator(prop, entries);
+      if (calculator) {
+        this._animators.push(new AnimationPropertyEntry(prop, calculator));
       }
-    });
-
-    var previousFramePropsLength;
-    this._animators = [];
-    forEach(properties, (values, prop) => {
-      if (previousFramePropsLength && previousFramePropsLength !== prop.length) {
-        throw new Error(ANIMATION_ERRORS.PARTIAL_KEYFRAMES);
-      }
-
-      var calculator = createCalculator(prop, values);
-      this._animators.push(new AnimationPropertyEntry(prop, calculator));
-
-      previousFramePropsLength = prop.length;
     });
 
     this._easingEquation = resolveEasingEquation(_options.easing);
   }
-
+  
   get totalTime() {
     return this._options.duration;
   }
@@ -146,14 +110,39 @@ export class Player {
   }
 
   _computeProperties(currentTime: number): string[] {
-    var results = [];
+    var keyframeLimit = this._totalOffsetCount - 1;
     var totalTime = this.totalTime;
     var percentage = Math.min(currentTime / totalTime, 1);
+
+    var results = [];
     var percentageWithEasing = this._ease(percentage);
+    var closestIndexBasedOnTime = Math.max(0,Math.floor(percentageWithEasing * keyframeLimit));
 
     this._animators.forEach(entry => {
-      var calculator = entry.calculator;
-      results.push([entry.property, calculator.calculate(percentageWithEasing)]);
+      let prop = entry.property;
+      let calc = entry.calculator;
+      let propLookup = this._styleProgressLookup[prop];
+      let currentKeyframe = propLookup[closestIndexBasedOnTime];
+      let result: string;
+      if (_isFinalKeyframe(currentKeyframe)) {
+        result = calc.getFinalValue();
+      } else {
+        let nextKeyframeIndex = currentKeyframe.next;
+        let jumpKeyframeIndex = currentKeyframe.jump;
+        if (jumpKeyframeIndex >= 0) {
+          currentKeyframe = propLookup[jumpKeyframeIndex];
+          nextKeyframeIndex = currentKeyframe.next;
+        }
+        let nextKeyframe = propLookup[nextKeyframeIndex];
+        let lowerOffset = currentKeyframe.offset;
+        let upperOffset = nextKeyframe.offset;
+        let offsetGap = upperOffset - lowerOffset;
+        let keyframePercentage = percentage == 0
+            ? 0
+            : (percentageWithEasing - lowerOffset) / offsetGap;
+        result = calc.calculate(currentKeyframe.valueIndex, keyframePercentage);
+      }
+      results.push([prop, result]);
     });
 
     return results;
@@ -183,4 +172,8 @@ export class Player {
   _apply(prop: string, value: string) {
     this._element.style[prop] = value;
   }
+}
+
+function _isFinalKeyframe(keyframe: StyleSpectrumEntry): boolean {
+  return keyframe.next == null && keyframe.jump == null;
 }

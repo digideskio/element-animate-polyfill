@@ -4,6 +4,7 @@
     "target": "es5",
     "noImplicitAny": false,
     "rootDir": ".",
+    "outDir": "./dist",
     "inlineSources": false,
     "sourceMap": true,
     "declaration": true,
