@@ -17,6 +17,19 @@ export function normalizeAndValidateKeyframes(keyframes: Array<{[key: string]: s
   return normalizedKeyframes;
 }
 
+export function validateAndNormalizeFillMode(fill: string): string {
+  fill = fill || 'none';
+  switch (fill) {
+    case 'forwards':
+    case 'backwards':
+    case 'both':
+    case 'none':
+      return fill;
+    default:
+      throw new Error(ANIMATION_ERRORS.INVALID_FILL_MODE);
+  }
+}
+
 function _normalizeKeyframeOffsets(keyframes: {[key: string]: string|number}[]): {[key: string]: string|number}[] {
   //based on testing chrome, there are various reasons why partial keyframes surface
   //when invalid keyframe input data is provided.

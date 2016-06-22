@@ -4,8 +4,7 @@ import {forEach, roundDecimal, toInt, toFloat, isNumber, isPresent} from './util
 import {StyleCalculator} from './style_calculator';
 import {resolveEasingEquation} from './easing';
 import {Keyframes} from './keyframes';
-import {StyleSpectrumEntry, createValueSpectrumFromKeyframes, resolveStyleCalculator} from './parser';
-import * as ANIMATION_ERRORS from './errors';
+import {StyleSpectrumEntry, validateAndNormalizeFillMode, createValueSpectrumFromKeyframes, resolveStyleCalculator} from './parser';
 
 export class AnimationPropertyEntry {
   constructor(public property: string, public calculator: StyleCalculator) {}
@@ -26,17 +25,7 @@ export class PlayerOptions {
     this.duration = toInt(duration);
     this.delay = isPresent(delay) ? toInt(delay) : 0;
     this.easing = isPresent(easing) ? easing : 'linear';
-
-    switch (fill) {
-      case 'forwards':
-      case 'backwards':
-      case 'both':
-        this.fill = fill;
-        break;
-      default:
-        this.fill = 'none';
-        break;
-    }
+    this.fill = validateAndNormalizeFillMode(fill);
   }
 }
 

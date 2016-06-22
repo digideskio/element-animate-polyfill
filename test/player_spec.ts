@@ -556,6 +556,22 @@ describe('Player', () => {
       expect(s(element.style.color)).toBe('rgb(0,255,0)');
     });
 
+    they('should throw an error when an invalid fill mode (e.g. $prop) is passed in', ['NONE', 'BOTH', 'something'], (fillMode) => {
+      var element = el('div');
+      var keyframes = [
+        { color: 'rgb(255,0,0)' },
+        { color: 'rgb(0,255,0)' }
+      ];
+      var options = {
+        duration: 500,
+        fill: fillMode
+      };
+
+      expect(() => {
+        animate(element, keyframes, options);
+      }).toThrowError(Error, ANIMATION_ERRORS.INVALID_FILL_MODE);
+    });
+
     describe('transform properties', () => {
       var propertiesToTest = [
         'translate',
