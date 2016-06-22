@@ -7,10 +7,22 @@ import {iit, xit, they, tthey, ddescribe} from './helpers';
 import {TRANSFORM_VALUES_DICTIONARY, NO_UNIT, PX_UNIT, DEGREES_UNIT} from '../src/transform_properties';
 import {COLOR_PROPERTIES} from '../src/color_properties';
 import {isPresent} from '../src/util';
+import {Logger, setActiveLogger} from '../src/logger';
 import * as ANIMATION_ERRORS from '../src/errors';
 
 function s(s: string): string {
   return s.replace(/\s+/g,'');
+}
+
+class MockLogger extends Logger {
+  warnings = [];
+  logs = [];
+  warn(message: string): void {
+    this.warnings.push(message);
+  }
+  log(message: string): void {
+    this.logs.push(message);
+  }
 }
 
 function assertColor(element, prop, value) {
@@ -55,6 +67,12 @@ describe('Player', () => {
     document.body.appendChild(element);
     return element;
   };
+
+  var logger;
+  beforeEach(() => {
+    logger = new MockLogger();
+    setActiveLogger(logger);
+  });
 
   describe('dimensional style properties', () => {
     they('should animate $prop', DIMENSIONAL_PROPERTIES, (prop) => {
@@ -151,9 +169,9 @@ describe('Player', () => {
     it('should animate z-index', () => {
       var element = el('div');
       var keyframes = [{
-        'z-index': 0
+        zIndex: 0
       }, {
-        'z-index': 100
+        zIndex: 100
       }];
 
       var options = {
@@ -167,22 +185,22 @@ describe('Player', () => {
       clock.fastForward(500);
       player.tick();
 
-      expect(element.style['z-index']).toBe('50');
+      expect(element.style['zIndex']).toBe('50');
 
       clock.fastForward(1000);
       player.tick();
 
-      expect(element.style['z-index']).toBe('100');
+      expect(element.style['zIndex']).toBe('100');
     });
 
     it('should be animated property when apart of an animation sequence', () => {
       var element = el('div');
       var keyframes = [
-        { opacity: '0', 'z-index': 0, offset: 0 },
-        { opacity: '0.5', 'z-index': 1, offset: 0.2 },
-        { 'z-index': 3, offset: 0.8 },
+        { opacity: '0', zIndex: 0, offset: 0 },
+        { opacity: '0.5', zIndex: 1, offset: 0.2 },
+        { zIndex: 3, offset: 0.8 },
         { opacity: '0.9', offset: 0.9 },
-        { opacity: '1', 'z-index': 5, offset: 1 }
+        { opacity: '1', zIndex: 5, offset: 1 }
       ];
 
       var player: Player = animate(element, keyframes, 1000);
@@ -190,31 +208,31 @@ describe('Player', () => {
       player.play();
 
       expect(element.style['opacity']).toBe('0');
-      expect(element.style['z-index']).toBe('0');
+      expect(element.style['zIndex']).toBe('0');
 
       clock.fastForward(200);
       player.tick();
 
       expect(element.style['opacity']).toBe('0.5');
-      expect(element.style['z-index']).toBe('1');
+      expect(element.style['zIndex']).toBe('1');
 
       clock.fastForward(600);
       player.tick();
 
       expect(element.style['opacity']).toBe('0.842857');
-      expect(element.style['z-index']).toBe('3');
+      expect(element.style['zIndex']).toBe('3');
 
       clock.fastForward(100);
       player.tick();
 
       expect(element.style['opacity']).toBe('0.9');
-      expect(element.style['z-index']).toBe('4');
+      expect(element.style['zIndex']).toBe('4');
 
       clock.fastForward(200);
       player.tick();
 
       expect(element.style['opacity']).toBe('1');
-      expect(element.style['z-index']).toBe('5');
+      expect(element.style['zIndex']).toBe('5');
 
       player.tick();
     });
@@ -391,7 +409,45 @@ describe('Player', () => {
 
       expect(element.style.opacity).toBe('1');
     });
+  });
 
+  describe('hypenated-styles', function() {
+    it('should drop CSS styles properties that contain hyphens', () => {
+      var element = el('div');
+      var keyframes = [
+        { height: 0, 'background-color': 'rgb(255,0,0)' },
+        { height: 100, 'background-color': 'rgb(0,255,0)' }
+      ];
+
+      var expectedStyle = 'rgb(0,0,255)';
+      element.style.backgroundColor = expectedStyle;
+
+      var player: Player = animate(element, keyframes, 1000);
+
+      player.play();
+
+      expect(element.style.height).toBe('0px');
+      expect(s(element.style.backgroundColor)).toBe(expectedStyle);
+
+      clock.fastForward(1000);
+      player.tick();
+
+      expect(element.style.height).toBe('100px');
+      expect(s(element.style.backgroundColor)).toBe(expectedStyle);
+    });
+
+    it('should emit a warning when hyphenated style properties are used', () => {
+      expect(logger.warnings.length).toEqual(0);
+
+      var element = el('div');
+      var keyframes = [
+        { 'z-index': '0' },
+        { 'z-index': '1' }
+      ];
+
+      animate(element, keyframes, 1000);
+      expect(logger.warnings.pop()).toEqual(ANIMATION_ERRORS.HYPHENATED_STYLES_WARNING);
+    });
   });
 
   describe('fill mode', () => {

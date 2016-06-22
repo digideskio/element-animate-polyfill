@@ -3,5 +3,5 @@ export const NUMERICAL_PROPERTIES = [
 ];
 
 export const ROUNDED_NUMERICAL_PROPERTIES = [
-  'z-index'
+  'zIndex'
 ];

@@ -4,10 +4,8 @@ export var PX_UNIT = 'px';
 
 export var TRANSFORM_PROPERTIES = [
   'transform',
-  '-webkit-transform',
   'webkitTransform',
   'WebkitTransform',
-  '-moz-transform',
   'mozTransform',
   'MozTransform'
 ];

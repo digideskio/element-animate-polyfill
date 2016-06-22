@@ -10,10 +10,11 @@ import {DIMENSIONAL_PROPERTIES} from './dimensional_properties';
 import {TRANSFORM_VALUES_DICTIONARY, TRANSFORM_PROPERTIES} from './transform_properties';
 import {ROUNDED_NUMERICAL_PROPERTIES, NUMERICAL_PROPERTIES} from './numerical_properties';
 import {COLOR_PROPERTIES} from './color_properties';
+import {getActiveLogger} from './logger';
 
 export function normalizeAndValidateKeyframes(keyframes: Array<{[key: string]: string}|{[key: string]: string|number}>): {[key: string]: string|number}[] {
   var normalizedKeyframes = _normalizeKeyframeOffsets(keyframes);
-  _validateKeyframeStyles(normalizedKeyframes);
+  normalizedKeyframes = _validateAndNormalizeKeyframeStyles(normalizedKeyframes);
   return normalizedKeyframes;
 }
 
@@ -82,7 +83,7 @@ function _normalizeKeyframeOffsets(keyframes: {[key: string]: string|number}[]):
   return newKeyframes;
 }
 
-function _validateKeyframeStyles(keyframes: {[key: string]: string|number}[]) {
+function _validateAndNormalizeKeyframeStyles(keyframes: {[key: string]: string|number}[]): {[key: string]: string|number}[] {
   var firstKeyframe = keyframes[0];
   var firstKeyframeStyles = Object.keys(firstKeyframe);
   var lastKeyframe = keyframes[keyframes.length - 1];
@@ -91,6 +92,30 @@ function _validateKeyframeStyles(keyframes: {[key: string]: string|number}[]) {
   if (!arrayEquals(lastKeyframeStyles, firstKeyframeStyles)) {
     throw new Error(ANIMATION_ERRORS.PARTIAL_KEYFRAMES);
   }
+
+  var showWarningAboutHyphenatedStyles = false;
+  var newKeyframes: {[key: string]: string|number}[] = [];
+  keyframes.forEach(keyframe => {
+    var newStyles: {[key: string]: string|number} = {};
+    var hasStylesForKeyframe = false;
+    forEach(keyframe, (value, prop) => {
+      if (prop.indexOf('-') == -1) {
+        hasStylesForKeyframe = true;
+        newStyles[prop] = value;
+      } else {
+        showWarningAboutHyphenatedStyles = true;
+      }
+    });
+    if (hasStylesForKeyframe) {
+      newKeyframes.push(newStyles);
+    }
+  });
+
+  if (showWarningAboutHyphenatedStyles) {
+    getActiveLogger().warn(ANIMATION_ERRORS.HYPHENATED_STYLES_WARNING);
+  }
+
+  return newKeyframes;
 }
 
 export class StyleSpectrumEntry {

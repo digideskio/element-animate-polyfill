@@ -31,6 +31,9 @@ nav {
   background:rgba(0,0,0,0.5);
   z-index:1000;
 }
+  div[id] {
+    background:red;
+  }
 </style>
 </head>
 <body>
@@ -55,9 +58,9 @@ button.addEventListener('click', function() {
   var el1 = document.getElementById('animate1');
   var el2 = document.getElementById('animate2');
   var animation = [
-    {height: "150px", transform: 'rotate(0deg)', background:'hsla(120,100%,50%,0.5)'},
-    {height: "400px", transform: 'rotate(360deg)', background:'rgba(255,100,0,0.2)'},
-    {height: "200px", transform: 'rotate(100deg)', background:'maroon'}
+    {height: "150px", transform: 'rotate(0deg)', 'background-color':'hsla(120,100%,50%,0.5)'},
+    {height: "400px", transform: 'rotate(360deg)', 'background-color':'rgba(255,100,0,0.2)'},
+    {height: "200px", transform: 'rotate(100deg)', 'background-color':'maroon'}
   ];
   var options = {
     duration: 10000,

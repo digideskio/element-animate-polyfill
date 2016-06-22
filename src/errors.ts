@@ -5,3 +5,5 @@ export const PARTIAL_KEYFRAMES = "Failed to execute 'animate' on 'Element': Part
 export const INVALID_DURATION = "Failed to execute 'animate' on 'Element': duration must be a double";
 
 export const INVALID_FILL_MODE = "Failed to execute 'animate' on 'Element': The provided value '$VALUE' is not a valid enum value of type FillMode."
+
+export const HYPHENATED_STYLES_WARNING = "Hyphenated property names in Web Animations keyframes are invalid and therefore ignored. Please use camelCase instead.";
